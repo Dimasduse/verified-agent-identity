@@ -74,7 +74,13 @@ async function main() {
       process.exit(1);
     }
 
-    const challenge = JSON.parse(args.challenge);
+    let challenge;
+    try {
+      challenge = JSON.parse(args.challenge);
+    } catch (e) {
+      console.error(`Error: --challenge is not valid JSON: ${e.message}`);
+      process.exit(1);
+    }
     const tokenString = await signChallenge(challenge, entry, kms);
 
     outputSuccess({ success: true, data: { token: tokenString } });

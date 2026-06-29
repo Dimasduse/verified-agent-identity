@@ -1,30 +1,22 @@
 const { randomInt } = require("crypto");
 const { getInitializedRuntime } = require("./shared/bootstrap");
-const { parseArgs, formatError, outputSuccess } = require("./shared/utils");
+const {
+  parseArgs,
+  outputSuccess,
+  validateArgs,
+  runScript,
+} = require("./shared/utils");
 
 async function main() {
-  try {
-    const args = parseArgs();
+  const args = parseArgs();
+  validateArgs(args, ["did"], "node scripts/generateChallenge.js --did <did>");
 
-    if (!args.did) {
-      console.error("Error: --did parameter is required");
-      console.error("Usage: node scripts/generateChallenge.js --did <did>");
-      process.exit(1);
-    }
+  const { challengeStorage } = await getInitializedRuntime();
 
-    const { challengeStorage } = await getInitializedRuntime();
+  const challenge = randomInt(0, 10000000000).toString();
+  await challengeStorage.save(args.did, challenge);
 
-    // Generate random challenge
-    const challenge = randomInt(0, 10000000000).toString();
-
-    // Save challenge to storage
-    await challengeStorage.save(args.did, challenge);
-
-    outputSuccess(challenge);
-  } catch (error) {
-    console.error(formatError(error));
-    process.exit(1);
-  }
+  outputSuccess(challenge);
 }
 
-main();
+runScript(main);

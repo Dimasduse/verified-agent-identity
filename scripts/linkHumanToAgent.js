@@ -5,7 +5,9 @@ const {
   parseArgs,
   urlFormating,
   outputSuccess,
-  formatError,
+  resolveDidEntry,
+  validateArgs,
+  runScript,
 } = require("./shared/utils");
 const { computeAttestationHash } = require("./shared/attestation");
 const { getInitializedRuntime } = require("./shared/bootstrap");
@@ -72,9 +74,6 @@ async function createAuthRequestMessage(jws, recipientDid) {
     },
   );
 
-  // the code does request to trusted URL shortener service to create
-  // a short link for the wallet deep link.
-  // This is needed to avoid issues with very long URLs in some wallets and to improve user experience.
   const shortenerResponse = await fetch(`${urlShortener}/shortener`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -101,53 +100,31 @@ async function createAuthRequestMessage(jws, recipientDid) {
 async function createPairing(challenge, didOverride) {
   const { kms, didsStorage } = await getInitializedRuntime();
 
-  const entry = didOverride
-    ? await didsStorage.find(didOverride)
-    : await didsStorage.getDefault();
-
-  if (!entry) {
-    const errorMsg = didOverride
-      ? `No DID ${didOverride} found`
-      : "No default DID found";
-    throw new Error(errorMsg);
-  }
-
-  const recipientDid = entry.did;
+  const entry = await resolveDidEntry(didsStorage, didOverride);
   const signedChallenge = await signChallenge(challenge, entry, kms);
 
-  return await createAuthRequestMessage(signedChallenge, recipientDid);
+  return await createAuthRequestMessage(signedChallenge, entry.did);
 }
 
 async function main() {
-  try {
-    const args = parseArgs();
+  const args = parseArgs();
+  validateArgs(
+    args,
+    ["challenge"],
+    "node linkHumanToAgent.js --challenge <json> [--did <did>]",
+  );
 
-    if (!args.challenge) {
-      console.error(
-        JSON.stringify({
-          success: false,
-          error:
-            "Invalid arguments. Usage: node linkHumanToAgent.js --challenge <json> [--did <did>]",
-        }),
-      );
-      process.exit(1);
-    }
+  const challenge = JSON.parse(args.challenge);
+  const url = await createPairing(challenge, args.did);
 
-    const challenge = JSON.parse(args.challenge);
-    const url = await createPairing(challenge, args.did);
-
-    outputSuccess({
-      success: true,
-      data: urlFormating(verificationMessage, url),
-    });
-  } catch (error) {
-    console.error(formatError(error));
-    process.exit(1);
-  }
+  outputSuccess({
+    success: true,
+    data: urlFormating(verificationMessage, url),
+  });
 }
 
 module.exports = { createPairing };
 
 if (require.main === module) {
-  main();
+  runScript(main);
 }

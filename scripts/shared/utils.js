@@ -78,10 +78,14 @@ function getAuthResponseMessage(did, challenge) {
  * Example: --did abc --key 123 => { did: 'abc', key: '123' }
  */
 function parseArgs() {
-  const args = {};
+  const FORBIDDEN_KEYS = ["__proto__", "constructor", "prototype"];
+  const args = Object.create(null);
   for (let i = 2; i < process.argv.length; i++) {
     if (process.argv[i].startsWith("--")) {
       const key = process.argv[i].slice(2);
+      if (FORBIDDEN_KEYS.includes(key)) {
+        continue;
+      }
       const value = process.argv[i + 1];
       args[key] = value;
       i++;

@@ -87,9 +87,15 @@ async function createAuthRequestMessage(jws, recipientDid) {
     );
   }
 
-  const { url } = await shortenerResponse.json();
+  const shortenerBody = await shortenerResponse.json();
 
-  return `${walletAddress}#request_uri=${url}`;
+  if (!shortenerBody.url) {
+    throw new Error(
+      "URL shortener returned an unexpected response: missing 'url' field",
+    );
+  }
+
+  return `${walletAddress}#request_uri=${shortenerBody.url}`;
 }
 
 /**
@@ -133,7 +139,13 @@ async function main() {
       process.exit(1);
     }
 
-    const challenge = JSON.parse(args.challenge);
+    let challenge;
+    try {
+      challenge = JSON.parse(args.challenge);
+    } catch (e) {
+      console.error(`Error: --challenge is not valid JSON: ${e.message}`);
+      process.exit(1);
+    }
     const url = await createPairing(challenge, args.did);
 
     outputSuccess({

@@ -15,10 +15,11 @@ function getMasterKey() {
 
   const trimmedKey = rawKey.trim();
 
-  // Reject whitespace-only or too-short keys to avoid weak/blank-looking master keys.
-  // Returning null keeps behavior consistent with the "no key configured" case.
   const MIN_MASTER_KEY_LENGTH = 16;
   if (trimmedKey.length < MIN_MASTER_KEY_LENGTH) {
+    console.warn(
+      `Warning: BILLIONS_NETWORK_MASTER_KMS_KEY is set but too short (${trimmedKey.length} chars, minimum ${MIN_MASTER_KEY_LENGTH}). Keys will be stored unencrypted.`,
+    );
     return null;
   }
 

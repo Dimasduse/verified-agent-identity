@@ -116,6 +116,61 @@ function codeFormating(data) {
   return `\\\`\\\`\\\`${data}\\\`\\\`\\\``;
 }
 
+/**
+ * Resolves a DID entry from storage by specific DID or default.
+ * Throws if no entry is found.
+ *
+ * @param {object} didsStorage - DidsFileStorage instance
+ * @param {string} [did] - Optional specific DID to look up; uses default if omitted
+ * @returns {Promise<object>} The resolved DID entry ({ did, publicKeyHex, isDefault })
+ */
+async function resolveDidEntry(didsStorage, did) {
+  const entry = did
+    ? await didsStorage.find(did)
+    : await didsStorage.getDefault();
+
+  if (!entry) {
+    const errorMsg = did
+      ? `No DID ${did} found`
+      : "No default DID found. Create one with createNewEthereumIdentity.js";
+    throw new Error(errorMsg);
+  }
+
+  return entry;
+}
+
+/**
+ * Validates that required arguments are present.
+ * Exits the process with a usage message if any are missing.
+ *
+ * @param {object} args - Parsed arguments object from parseArgs()
+ * @param {string[]} required - List of required argument names
+ * @param {string} usage - Usage string to display on validation failure
+ */
+function validateArgs(args, required, usage) {
+  const missing = required.filter((name) => !args[name]);
+  if (missing.length > 0) {
+    console.error(
+      `Error: --${missing.join(", --")} ${missing.length === 1 ? "is" : "are"} required`,
+    );
+    console.error(`Usage: ${usage}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Wraps a script's main function with standard error handling.
+ * Catches errors, formats them, and exits with code 1.
+ *
+ * @param {function} fn - Async function to run as the script entry point
+ */
+function runScript(fn) {
+  fn().catch((error) => {
+    console.error(formatError(error));
+    process.exit(1);
+  });
+}
+
 module.exports = {
   normalizeKey,
   addHexPrefix,
@@ -128,4 +183,7 @@ module.exports = {
   buildEthereumAddressFromDid,
   urlFormating,
   codeFormating,
+  resolveDidEntry,
+  validateArgs,
+  runScript,
 };

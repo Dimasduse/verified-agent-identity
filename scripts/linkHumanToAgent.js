@@ -79,6 +79,7 @@ async function createAuthRequestMessage(jws, recipientDid) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(message),
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (shortenerResponse.status !== 201) {
